@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat Chiffré</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+  body { background: #0f172a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; }
+  .container { width: 95%; max-width: 600px; background: #1e293b; border-radius: 15px; padding: 20px; }
+  h1 { text-align: center; color: #22c55e; margin-bottom: 10px; font-size: 22px; }
+  .subtitle { text-align: center; color: #94a3b8; font-size: 12px; margin-bottom: 15px; }
+  #login { text-align: center; }
+  #login input { width: 100%; padding: 12px; border-radius: 8px; border: none; margin-bottom: 10px; font-size: 16px; }
+  #login button { width: 100%; padding: 12px; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+  #chat { display: none; }
+  #messages { height: 350px; overflow-y: auto; background: #0f172a; border-radius: 10px; padding: 10px; margin-bottom: 10px; }
+  .msg { margin-bottom: 8px; padding: 8px 10px; background: #334155; border-radius: 8px; word-wrap: break-word; }
+  .msg b { color: #22c55e; }
+  .msg.system { background: transparent; text-align: center; color: #94a3b8; font-size: 12px; }
+  .input-row { display: flex; gap: 10px; }
+  #msgInput { flex: 1; padding: 12px; border-radius: 8px; border: none; font-size: 15px; }
+  #sendBtn { padding: 12px 20px; background: #22c55e; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+  .badge { display: inline-block; background: #22c55e; color: white; font-size: 10px; padding: 2px 8px; border-radius: 20px; margin-left: 5px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🔒 Chat Chiffré <span class="badge">AES-256</span></h1>
+  <p class="subtitle">Messages chiffrés de bout en bout • Projet Sécurité</p>
+  <div id="login">
+    <input id="pseudoInput" placeholder="Entre ton pseudo..." />
+    <button onclick="joinChat()">Rejoindre le salon</button>
+  </div>
+  <div id="chat">
+    <div id="messages"></div>
+    <div class="input-row">
+      <input id="msgInput" placeholder="Écris ton message..." onkeypress="if(event.key==='Enter') sendMessage()" />
+      <button id="sendBtn" onclick="sendMessage()">Envoyer</button>
+    </div>
+  </div>
+</div>
+<script>
+  const socket = io();
+  let pseudo = "";
+  function joinChat() {
+    pseudo = document.getElementById('pseudoInput').value.trim();
+    if (!pseudo) { alert("Entre un pseudo !"); return; }
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('chat').style.display = 'block';
+    socket.emit('join', { pseudo: pseudo });
+  }
+  function sendMessage() {
+    const input = document.getElementById('msgInput');
+    const text = input.value.trim();
+    if (!text) return;
+    socket.emit('send_message', { msg: text });
+    input.value = "";
+  }
+  socket.on('message', (data) => {
+    const div = document.getElementById('messages');
+    const el = document.createElement('div');
+    if (data.pseudo === 'SYSTEME') {
+      el.className = 'msg system';
+      el.textContent = data.msg;
+    } else {
+      el.className = 'msg';
+      el.innerHTML = `<b>${data.pseudo} :</b> ${data.msg}`;
+    }
+    div.appendChild(el);
+    div.scrollTop = div.scrollHeight;
+  });
+</script>
+</body>
+</html>
